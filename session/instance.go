@@ -14,6 +14,32 @@ import (
 	"github.com/atotto/clipboard"
 )
 
+// Workspace is the interface for interacting with a git worktree after creation.
+type Workspace interface {
+	// Getters
+	GetWorktreePath() string
+	GetBranchName() string
+	GetRepoPath() string
+	GetRepoName() string
+	GetBaseCommitSHA() string
+
+	// Setup and cleanup
+	Setup() error
+	Cleanup() error
+	Remove() error
+	Prune() error
+
+	// Git operations
+	PushChanges(commitMessage string, open bool) error
+	CommitChanges(commitMessage string) error
+	IsDirty() (bool, error)
+	IsBranchCheckedOut() (bool, error)
+	OpenBranchURL() error
+
+	// Diff
+	Diff() *git.DiffStats
+}
+
 type Status int
 
 const (
@@ -61,7 +87,7 @@ type Instance struct {
 	// tmuxSession is the tmux session for the instance.
 	tmuxSession *tmux.TmuxSession
 	// gitWorktree is the git worktree for the instance.
-	gitWorktree *git.GitWorktree
+	gitWorktree Workspace
 }
 
 // ToInstanceData converts an Instance to its serializable form
@@ -334,7 +360,7 @@ func (i *Instance) SetPreviewSize(width, height int) error {
 }
 
 // GetGitWorktree returns the git worktree for the instance
-func (i *Instance) GetGitWorktree() (*git.GitWorktree, error) {
+func (i *Instance) GetGitWorktree() (Workspace, error) {
 	if !i.started {
 		return nil, fmt.Errorf("cannot get git worktree for instance that has not been started")
 	}
